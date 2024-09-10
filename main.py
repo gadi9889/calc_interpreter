@@ -27,7 +27,7 @@ class Interpreter(object):
     def error(self) -> None:
         raise Exception('Error parsing input')
     
-    def advance(self):
+    def advance(self) -> None:
         """Advance the 'pos' pointer and set the 'current_char' variable."""
         self.pos += 1
         if self.pos > len(self.text) - 1:
@@ -35,11 +35,11 @@ class Interpreter(object):
         else:
             self.current_char = self.text[self.pos]
 
-    def skip_whitespace(self):
+    def skip_whitespace(self) -> None:
         while self.current_char is not None and self.current_char.isspace():
             self.advance()
 
-    def integer(self):
+    def integer(self) -> int:
         """Return a (multidigit) integer consumed from the input"""
         result = ''
         while self.current_char is not None and self.current_char.isdigit():
@@ -80,40 +80,32 @@ class Interpreter(object):
         else:
             self.error()
 
+    def term(self) -> str|int:
+        """Return an INTEGER token value."""
+        token = self.current_token
+        self.eat(INTEGER)
+        return token.value
 
     def expr(self) -> int:
-        """Parser / Interpreter
-
-        expr -> INTEGER PLUS INTEGER
-        expr -> INTEGER MINUS INTEGER
-        """
-
+        """Arithmetic expression parser / interpreter."""
+        # set current token to the first token taken from the input
         self.current_token = self.get_next_token()
 
-        left = self.current_token
-        self.eat(INTEGER)
+        result = self.term()
+        while self.current_token.type in (PLUS, MINUS):
+            token = self.current_token
+            if token.type == PLUS:
+                self.eat(PLUS)
+                result = result + self.term()
+            elif token.type == MINUS:
+                self.eat(MINUS)
+                result = result - self.term()
 
-        op = self.current_token
-        self.eat(PLUS)
-        if op.type == PLUS:
-            self.eat(PLUS)
-        else:
-            self.eat(MINUS)
-
-        right = self.current_token
-        self.eat(INTEGER)
-
-        if op.type == PLUS:
-            result = left.value + right.value
-        else:
-            result = left.value - right.value
         return result
 
 def main():
     while True:
         try:
-            # To run under Python3 replace 'raw_input' call
-            # with 'input'
             text = input('calc> ')
         except EOFError:
             break

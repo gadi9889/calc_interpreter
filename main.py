@@ -1,5 +1,5 @@
-INTEGER, PLUS, MINUS, MUL, DIV, EOF = (
-    'INTEGER', 'PLUS', 'MINUS', 'MUL', 'DIV', 'EOF'
+INTEGER, PLUS, MINUS, MUL, DIV, LPAREN, RPAREN, EOF = (
+    'INTEGER', 'PLUS', 'MINUS', 'MUL', 'DIV', '(', ')', 'EOF'
 )
 
 class Token(object):
@@ -64,6 +64,14 @@ class Lexer(object):
             if self.current_char.isdigit():
                 return Token(INTEGER, self.integer())
 
+            if self.current_char == '+':
+                self.advance()
+                return Token(PLUS, '+')
+
+            if self.current_char == '-':
+                self.advance()
+                return Token(MINUS, '-')
+
             if self.current_char == '*':
                 self.advance()
                 return Token(MUL, '*')
@@ -71,6 +79,14 @@ class Lexer(object):
             if self.current_char == '/':
                 self.advance()
                 return Token(DIV, '/')
+
+            if self.current_char == '(':
+                self.advance()
+                return Token(LPAREN, '(')
+
+            if self.current_char == ')':
+                self.advance()
+                return Token(RPAREN, ')')
 
             self.error()
 
@@ -92,13 +108,16 @@ class Interpreter(object):
             self.error()
 
     def factor(self) -> int:
-        """Return an INTEGER token value.
-
-        factor : INTEGER
-        """
+        """factor : INTEGER | LPAREN expr RPAREN"""
         token = self.current_token
-        self.eat(INTEGER)
-        return token.value
+        if token.type == INTEGER:
+            self.eat(INTEGER)
+            return token.value
+        elif token.type == LPAREN:
+            self.eat(LPAREN)
+            result = self.expr()
+            self.eat(RPAREN)
+            return result
     
     def term(self) -> int:
         """term : factor ((MUL | DIV) factor)*"""
@@ -118,12 +137,12 @@ class Interpreter(object):
     def expr(self) -> int:
         """Arithmetic expression parser / interpreter.
 
-        calc>  14 + 2 * 3 - 6 / 2
-        17
+        calc> 7 + 3 * (10 / (12 / (3 + 1) - 1))
+        22
 
         expr   : term ((PLUS | MINUS) term)*
         term   : factor ((MUL | DIV) factor)*
-        factor : INTEGER
+        factor : INTEGER | LPAREN expr RPAREN
         """
         result = self.term()
 
